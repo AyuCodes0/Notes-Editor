@@ -8,43 +8,55 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
 
+/**
+ * GUI class extends JFrame to create a simple Notepad application.
+ */
 public class GUI extends JFrame {
+
     // file explorer
     private JFileChooser fileChooser;
 
+    // text area for editing text
     private JTextArea textArea;
-    public JTextArea getTextArea(){return textArea;}
 
+    // currently opened file
     private File currentFile;
 
-    // swing's built in library to manage undo and redo functionalities
+    // UndoManager for managing undo and redo actions
     private UndoManager undoManager;
 
-    public GUI(){
+    /**
+     * Constructor to initialize the GUI.
+     */
+    public GUI() {
         super("Notepad");
         setSize(400, 500);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
 
-        // file chooser setup
+        // Initialize file chooser
         fileChooser = new JFileChooser();
         fileChooser.setCurrentDirectory(new File("src/assets"));
         fileChooser.setFileFilter(new FileNameExtensionFilter("Text Files", "txt"));
 
+        // Initialize UndoManager
         undoManager = new UndoManager();
 
+        // Add GUI components
         addGuiComponents();
     }
 
-    private void addGuiComponents(){
+    /**
+     * Adds all GUI components to the frame.
+     */
+    private void addGuiComponents() {
         addToolbar();
 
-        // area to type text into
+        // Text area for editing text
         textArea = new JTextArea();
         textArea.getDocument().addUndoableEditListener(new UndoableEditListener() {
             @Override
             public void undoableEditHappened(UndoableEditEvent e) {
-                // adds each edit that we do in the text area (either adding or removing text)
                 undoManager.addEdit(e.getEdit());
             }
         });
@@ -53,15 +65,18 @@ public class GUI extends JFrame {
         add(scrollPane, BorderLayout.CENTER);
     }
 
-    private void addToolbar(){
+    /**
+     * Adds the toolbar to the frame.
+     */
+    private void addToolbar() {
         JToolBar toolBar = new JToolBar();
         toolBar.setFloatable(false);
 
-        // menu bar
+        // Menu bar
         JMenuBar menuBar = new JMenuBar();
         toolBar.add(menuBar);
 
-        // add menus
+        // Add menus
         menuBar.add(addFileMenu());
         menuBar.add(addEditMenu());
         menuBar.add(addFormatMenu());
@@ -70,146 +85,116 @@ public class GUI extends JFrame {
         add(toolBar, BorderLayout.NORTH);
     }
 
-    private JMenu addFileMenu(){
+    /**
+     * Constructs and returns the File menu.
+     *
+     * @return The constructed File menu.
+     */
+    private JMenu addFileMenu() {
         JMenu fileMenu = new JMenu("File");
 
-        // "new" functionality - resets everything
+        // New functionality - resets everything
         JMenuItem newMenuItem = new JMenuItem("New");
         newMenuItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // reset title header
                 setTitle("Notepad");
-
-                // reset text area
                 textArea.setText("");
-
-                // reset current file
                 currentFile = null;
             }
         });
         fileMenu.add(newMenuItem);
 
-        // "open" functionality - open a text file
+        // Open functionality - open a text file
         JMenuItem openMenuItem = new JMenuItem("Open");
         openMenuItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // open file explorer
                 int result = fileChooser.showOpenDialog(GUI.this);
+                if (result != JFileChooser.APPROVE_OPTION) return;
 
-                if(result != JFileChooser.APPROVE_OPTION) return;
-                try{
-                    // reset notepad
-                    newMenuItem.doClick();
+                try {
+                    newMenuItem.doClick(); // Reset notepad
 
-                    // get the selected file
                     File selectedFile = fileChooser.getSelectedFile();
-
-                    // update current file
                     currentFile = selectedFile;
-
-                    // update title header
                     setTitle(selectedFile.getName());
 
-                    // read the file
+                    // Read the file
                     FileReader fileReader = new FileReader(selectedFile);
                     BufferedReader bufferedReader = new BufferedReader(fileReader);
-
-                    // store the text
                     StringBuilder fileText = new StringBuilder();
                     String readText;
-                    while((readText = bufferedReader.readLine()) != null){
-                        fileText.append(readText + "\n");
+                    while ((readText = bufferedReader.readLine()) != null) {
+                        fileText.append(readText).append("\n");
                     }
-
-                    // update text area gui
                     textArea.setText(fileText.toString());
-
-                }catch(Exception e1){
-
+                } catch (IOException ex) {
+                    ex.printStackTrace();
                 }
             }
         });
         fileMenu.add(openMenuItem);
 
-        // "save as" functionality - creates a new text file and saves user text
+        // Save As functionality - creates a new text file and saves user text
         JMenuItem saveAsMenuItem = new JMenuItem("Save As");
         saveAsMenuItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // open save dialog
                 int result = fileChooser.showSaveDialog(GUI.this);
+                if (result != JFileChooser.APPROVE_OPTION) return;
 
-                // continue to execute code only if the user pressed the save button
-                if(result != JFileChooser.APPROVE_OPTION) return;
-                try{
+                try {
                     File selectedFile = fileChooser.getSelectedFile();
-
-                    // we will need to append .txt to the file if it does not have the txt extension yet
-                    String fileName = selectedFile.getName();
-                    if(!fileName.substring(fileName.length() - 4).equalsIgnoreCase(".txt")){
-                        selectedFile = new File(selectedFile.getAbsoluteFile() + ".txt");
+                    if (!selectedFile.getName().endsWith(".txt")) {
+                        selectedFile = new File(selectedFile.getAbsolutePath() + ".txt");
                     }
-
-                    // create new file
                     selectedFile.createNewFile();
 
-                    // now we will write the user's text into the file that we just created
                     FileWriter fileWriter = new FileWriter(selectedFile);
                     BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
                     bufferedWriter.write(textArea.getText());
                     bufferedWriter.close();
                     fileWriter.close();
 
-                    // update the title header of gui to the save text file
-                    setTitle(fileName);
-
-                    // update current file
+                    setTitle(selectedFile.getName());
                     currentFile = selectedFile;
 
-                    // show display dialog
                     JOptionPane.showMessageDialog(GUI.this, "Saved File!");
-
-                }catch(Exception e1){
-                    e1.printStackTrace();
+                } catch (IOException ex) {
+                    ex.printStackTrace();
                 }
             }
         });
         fileMenu.add(saveAsMenuItem);
 
-        // "save" functionalty - saves text into current text file
+        // Save functionality - saves text into current text file
         JMenuItem saveMenuItem = new JMenuItem("Save");
         saveMenuItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // if the current file is null then we have to perform save as functionality
-                if(currentFile == null) saveAsMenuItem.doClick();
-
-                // if the user chooses to cancel saving the file this means that current file will still
-                // be null, then we want to prevent executing the rest of the code
-                if(currentFile == null) return;
-
-                try{
-                    // write to current file
+                if (currentFile == null) {
+                    saveAsMenuItem.doClick();
+                    return;
+                }
+                try {
                     FileWriter fileWriter = new FileWriter(currentFile);
                     BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
                     bufferedWriter.write(textArea.getText());
                     bufferedWriter.close();
                     fileWriter.close();
-                }catch(Exception e1){
-                    e1.printStackTrace();
+                } catch (IOException ex) {
+                    ex.printStackTrace();
                 }
             }
         });
         fileMenu.add(saveMenuItem);
 
-        // "exit" functionality - ends program process
+        // Exit functionality - ends program process
         JMenuItem exitMenuItem = new JMenuItem("Exit");
         exitMenuItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // dispose of this gui
                 GUI.this.dispose();
             }
         });
@@ -218,32 +203,39 @@ public class GUI extends JFrame {
         return fileMenu;
     }
 
-    private JMenu addEditMenu(){
+    /**
+     * Constructs and returns the Edit menu.
+     *
+     * @return The constructed Edit menu.
+     */
+    private JMenu addEditMenu() {
         JMenu editMenu = new JMenu("Edit");
 
+        // Undo functionality
         JMenuItem undoMenuItem = new JMenuItem("Undo");
         undoMenuItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // means that if there are any edits that we can undo, then we undo them
-                if(undoManager.canUndo()){
+                if (undoManager.canUndo()) {
                     undoManager.undo();
                 }
             }
         });
         editMenu.add(undoMenuItem);
 
+        // Redo functionality
         JMenuItem redoMenuItem = new JMenuItem("Redo");
         redoMenuItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // means if there is an edit that we can redo then we redo it
-                if(undoManager.canRedo()) {
+                if (undoManager.canRedo()) {
                     undoManager.redo();
                 }
             }
         });
         editMenu.add(redoMenuItem);
+
+        // Find functionality
         JMenuItem findMenuItem = new JMenuItem("Find...");
         findMenuItem.addActionListener(new ActionListener() {
             @Override
@@ -263,6 +255,7 @@ public class GUI extends JFrame {
         });
         editMenu.add(findMenuItem);
 
+        // Replace functionality
         JMenuItem replaceMenuItem = new JMenuItem("Replace...");
         replaceMenuItem.addActionListener(new ActionListener() {
             @Override
@@ -283,32 +276,29 @@ public class GUI extends JFrame {
         return editMenu;
     }
 
-    private JMenu addFormatMenu(){
+    /**
+     * Constructs and returns the Format menu.
+     *
+     * @return The constructed Format menu.
+     */
+    private JMenu addFormatMenu() {
         JMenu formatMenu = new JMenu("Format");
 
-        // wrap word functionality
+        // Word wrap functionality
         JCheckBoxMenuItem wordWrapMenuItem = new JCheckBoxMenuItem("Word Wrap");
         wordWrapMenuItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 boolean isChecked = wordWrapMenuItem.getState();
-                if(isChecked){
-                    // wrap words
-                    textArea.setLineWrap(true);
-                    textArea.setWrapStyleWord(true);
-                }else{
-                    // unwrap words
-                    textArea.setLineWrap(false);
-                    textArea.setWrapStyleWord(false);
-                }
+                textArea.setLineWrap(isChecked);
+                textArea.setWrapStyleWord(isChecked);
             }
         });
         formatMenu.add(wordWrapMenuItem);
 
-        // aligning text
+        // Text alignment options
         JMenu alignTextMenu = new JMenu("Align Text");
 
-        // align text to the left
         JMenuItem alignTextLeftMenuItem = new JMenuItem("Left");
         alignTextLeftMenuItem.addActionListener(new ActionListener() {
             @Override
@@ -318,7 +308,6 @@ public class GUI extends JFrame {
         });
         alignTextMenu.add(alignTextLeftMenuItem);
 
-        // align text to the right
         JMenuItem alignTextRightMenuItem = new JMenuItem("Right");
         alignTextRightMenuItem.addActionListener(new ActionListener() {
             @Override
@@ -330,12 +319,11 @@ public class GUI extends JFrame {
 
         formatMenu.add(alignTextMenu);
 
-        // font format
+        // Font options
         JMenuItem fontMenuItem = new JMenuItem("Font...");
         fontMenuItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // launch font menu
                 new FontMenu(GUI.this).setVisible(true);
             }
         });
@@ -344,12 +332,17 @@ public class GUI extends JFrame {
         return formatMenu;
     }
 
-    private JMenu addViewMenu(){
+    /**
+     * Constructs and returns the View menu.
+     *
+     * @return The constructed View menu.
+     */
+    private JMenu addViewMenu() {
         JMenu viewMenu = new JMenu("View");
 
+        // Zoom options
         JMenu zoomMenu = new JMenu("Zoom");
 
-        // zoom in functionality
         JMenuItem zoomInMenuItem = new JMenuItem("Zoom in");
         zoomInMenuItem.addActionListener(new ActionListener() {
             @Override
@@ -364,7 +357,6 @@ public class GUI extends JFrame {
         });
         zoomMenu.add(zoomInMenuItem);
 
-        // zoom out functionality
         JMenuItem zoomOutMenuItem = new JMenuItem("Zoom out");
         zoomOutMenuItem.addActionListener(new ActionListener() {
             @Override
@@ -379,7 +371,6 @@ public class GUI extends JFrame {
         });
         zoomMenu.add(zoomOutMenuItem);
 
-        // restore default zoom
         JMenuItem zoomRestoreMenuItem = new JMenuItem("Restore Default Zoom");
         zoomRestoreMenuItem.addActionListener(new ActionListener() {
             @Override
@@ -399,12 +390,12 @@ public class GUI extends JFrame {
         return viewMenu;
     }
 
+    /**
+     * Retrieves the text area component.
+     *
+     * @return The JTextArea component.
+     */
+    public JTextArea getTextArea() {
+        return textArea;
+    }
 }
-
-
-
-
-
-
-
-

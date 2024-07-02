@@ -1,0 +1,9 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="Notes Editor:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/Notes_Editor_jar</output-path>
+    <root id="archive" name="Notes Editor.jar">
+      <element id="module-output" name="Notes Editor" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/Lib/JTattoo-1.6.13.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
